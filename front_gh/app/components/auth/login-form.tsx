@@ -12,15 +12,29 @@ export function LoginForm({
     ...props
 }: React.ComponentPropsWithoutRef<"form">) {
     const navigate = useNavigate()
-    const [user, setUser] = useState("")
+    const [email, setEmail] = useState("") // Cambiar de user a email
     const [password, setPassword] = useState("")
-    const [errors, setErrors] = useState<{ user?: string; password?: string }>({})
+    const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
     const [showPassword, setShowPassword] = useState(false)
+
+    const [isLoading, setIsLoading] = useState(false) // Por buenas practicas se recomienda usar estado de carga
 
     function validate() {
         const newErrors: typeof errors = {}
-        if (!user.trim()) newErrors.user = "El usuario es requerido"
-        if (!password) newErrors.password = "La contraseña es requerida"
+
+        // Se hace la validación de email y se agrega el retorno de errores respectivamente
+        if (!email.trim()) {
+            newErrors.email = "El email es requerido"
+        } else if (!/\S+@\S+\.\S+/.test(email)) {
+            newErrors.email = "El email no es válido"
+        }
+        
+        if (!password) {
+            newErrors.password = "La contraseña es requerida"
+        } else if (password.length < 6) {
+            newErrors.password = "La contraseña debe tener al menos 6 caracteres"
+        }
+
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
     }
@@ -29,13 +43,28 @@ export function LoginForm({
         e.preventDefault();
         if (!validate()) return;
 
-        const result = await login(user, password);
+        setIsLoading(true); // Por buenas practicas se debe activar el estado de carga
 
-        if (result.success) {
-            console.log("Inicio de sesión exitoso");
-            navigate("/dashboard")
-        } else {
-            console.log("Error de login:", result.error);
+        // Por buenas practicas no se debe dejar el const result suelto por lo que se agrega el try-catch con finaly para desactivar el estado de carga
+        try {
+            const result = await login(email, password); // Se pasa el email en lugar de user
+
+            if (result.success) {
+                console.log("Inicio de sesión exitoso");
+                navigate("/dashboard");
+            } else {
+                console.log("Error de login:", result.error);
+                // Se define el error específico
+                setErrors({ 
+                    email: result.error?.includes("email") ? result.error : undefined,
+                    password: !result.error?.includes("email") ? result.error : undefined 
+                });
+            }
+        } catch (error) {
+            console.error("Error inesperado:", error);
+            setErrors({ password: "Error de conexión con el servidor" });
+        } finally {
+            setIsLoading(false); // Se desactiva el estado de carga
         }
     }
 
@@ -47,11 +76,18 @@ export function LoginForm({
             <div className="grid gap-6">
 
                 <div className="grid gap-2">
-                    <Label htmlFor="user">Usuario</Label>
-                    <Input id="user" type="text" value={user}
-                        onChange={(e) => setUser(e.target.value)} required />
-                    {errors.user && <p className="text-sm text-red-500">{errors.user}</p>}
+                    <Label htmlFor="email">Email</Label> {/* Cambiar label de user a email*/}
+                    <Input 
+                        id="email" 
+                        type="email" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)} 
+                        required 
+                        disabled={isLoading} // Deshabilitar durante carga
+                    />
+                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                 </div>
+                
                 <div className="grid gap-2">
                     <div className="flex items-center">
                         <Label htmlFor="password">Contraseña</Label>
@@ -62,26 +98,30 @@ export function LoginForm({
                             Olvidaste tu contraseña?
                         </a> */}
                     </div>
-                    <Input id="password" type={showPassword ? "text" : "password"}
+                    <Input 
+                        id="password" 
+                        type={showPassword ? "text" : "password"}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)} required />
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required 
+                        disabled={isLoading} // Deshabilitar durante carga
+                    />
                     {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
                 </div>
+
                 <div className="flex items-center gap-2 ">
                     <Label className="text-sm font-normal">Mostrar contraseña</Label>
-                    <Checkbox checked={showPassword}
-                        onCheckedChange={(val) => setShowPassword(!!val)} />
+                    <Checkbox 
+                        checked={showPassword}
+                        onCheckedChange={(val) => setShowPassword(!!val)} 
+                        disabled={isLoading} // Deshabilitar durante carga
+                    />
                 </div>
-                <Button type="submit" className="w-full">
-                    Iniciar sesión
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Iniciando sesión..." : "Iniciar sesión"} {/* Mostrar estado de carga */}
                 </Button>
             </div>
-            {/* <div className="text-center text-sm">
-                No tienes una cuenta?{" "}
-                <a href="#" className="underline underline-offset-4">
-                    Registrate
-                </a>
-            </div> */}
         </form>
     )
 }

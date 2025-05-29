@@ -1,25 +1,30 @@
 import { loginService } from "~/services/authService";
 
-export async function login(user: string, password: string) {
+// Cambiar de nombreUsuario a email
+export async function login(email: string, password: string) {
     try {
-        const res = await loginService(user, password);
+        const res = await loginService(email, password);
 
         if (!res || !res.data) {
             throw new Error("Respuesta inválida del servidor");
         }
 
-        if (res.data.error) {
-            console.error("Error Login AuthProvider:", res.data.error);
-            throw new Error(res.data.error);
+        // Faltaba verificar que la respuesta tenga access_token (según AuthService del backend)
+        if (res.data.access_token) {
+            localStorage.setItem("token", res.data.access_token);
+            localStorage.setItem("tokenValido", "true");
+            return { success: true };
+        } else {
+            throw new Error("Token no recibido del servidor");
         }
 
-        localStorage.setItem("token", res.data.token!);
-        localStorage.setItem("tokenValido", "true");
-        return { success: true };
-
     } catch (error: any) {
-        if (error.response?.data?.error) {
-            return { success: false, error: error.response.data.error };
+        console.error("Error en login:", error);
+        
+        if (error.response?.data?.message) {
+            return { success: false, error: error.response.data.message };
+        } else if (error.response?.status === 401) {
+            return { success: false, error: "Email o contraseña incorrectos" };
         } else {
             return { success: false, error: error.message || "Error inesperado" };
         }
