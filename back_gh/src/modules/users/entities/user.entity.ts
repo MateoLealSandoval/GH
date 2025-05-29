@@ -1,9 +1,9 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { Role } from 'src/common/enums/role.enum';
 
 @Entity()
 export class User {
-  @Column({ primary: true, generated: true })
+  @PrimaryGeneratedColumn() // Se corrige
   id: number;
 
   @Column({ nullable: false })

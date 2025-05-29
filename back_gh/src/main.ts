@@ -6,10 +6,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
 
+  // Se corrige la configuración del CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN,
-    methods: 'GET,POST,PUT,PATCH,DELETE',
-    allowedHeaers: 'Content-Type, Authotization',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173', // Se agrega el puerto por defecto
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ], //Corregido
+    credentials: true, // Permitir cookies/credenciales
   });
 
   app.useGlobalPipes(
@@ -19,8 +26,8 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  const port = process.env.PORT || 3001;
 
+  const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
 }
